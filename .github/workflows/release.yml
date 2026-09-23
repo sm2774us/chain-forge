@@ -62,7 +62,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
       - name: Sigstore build-provenance attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           subject-digest: ${{ steps.build.outputs.digest }}
@@ -91,7 +91,7 @@ jobs:
       - run: |
           mkdir -p out && cp dist/go/* target/release/signer out/ && tar -C apps/web -czf out/web-dist.tgz dist
           (cd out && sha256sum * > SHA256SUMS)
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         with: { subject-path: "out/*" }
       - run: gh release upload "${{ needs.release-please.outputs.tag }}" out/* --clobber
         env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
