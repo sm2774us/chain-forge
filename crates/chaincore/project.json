@@ -1,0 +1,9 @@
+{
+  "name": "chaincore", "$schema": "../../node_modules/nx/schemas/project-schema.json", "projectType": "library",
+  "tags": ["lang:rust"],
+  "targets": {
+    "build": { "executor": "nx:run-commands", "options": { "command": "cargo build --release --locked -p chaincore" } },
+    "test": { "executor": "nx:run-commands", "options": { "command": "cargo test --locked -p chaincore" } },
+    "lint": { "executor": "nx:run-commands", "options": { "commands": ["cargo fmt --check -p chaincore", "cargo clippy --locked -p chaincore --all-targets -- -D warnings"], "parallel": false } }
+  }
+}

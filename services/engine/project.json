@@ -1,0 +1,47 @@
+{
+  "name": "engine",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "tags": [
+    "lang:rust"
+  ],
+  "implicitDependencies": [
+    "chaincore"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/target/release/engine"
+      ],
+      "options": {
+        "command": "cargo build --release --locked -p engine --bin engine"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo test --locked -p engine"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "cargo fmt --check -p engine",
+          "cargo clippy --locked -p engine --all-targets -- -D warnings"
+        ],
+        "parallel": false
+      }
+    },
+    "interop": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "build"
+      ],
+      "options": {
+        "command": "bash tools/interop.sh"
+      }
+    }
+  }
+}

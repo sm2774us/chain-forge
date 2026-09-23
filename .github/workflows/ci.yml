@@ -1,0 +1,92 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+env:
+  NX_NO_CLOUD: "true"
+jobs:
+  commit-lint:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --ignore-scripts
+      - name: Conventional-commit check on PR commits
+        run: npx commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.event.pull_request.head.sha }}" --verbose
+
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: nrwl/nx-set-shas@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-go@v5
+        with: { go-version-file: services/gateway/go.mod, cache-dependency-path: services/gateway/go.mod }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: "clippy, rustfmt, llvm-tools-preview" }
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci --ignore-scripts
+      - name: Nx affected — lint, test, coverage (100% gates), build
+        run: npx nx affected -t lint test coverage build --parallel=3
+      - name: Go ↔ Rust interop (real gateway client against the real engine binary)
+        run: npx nx run engine:interop
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: web-coverage, path: apps/web/coverage, if-no-files-found: ignore }
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --ignore-scripts
+      - name: Boot the real stack (chainsim + Go gateway + Rust signer + web)
+        run: docker compose up -d --build --wait --wait-timeout 300 || (docker compose logs; exit 1)
+      - run: npx playwright install --with-deps chromium
+      - name: Playwright
+        run: npx nx run web:e2e
+        env:
+          E2E_BASE_URL: http://localhost:8088
+          E2E_API_KEY: dev-key-change-me
+      - if: always()
+        run: docker compose logs --no-color > compose.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: e2e-report, path: "apps/web/playwright-report\ncompose.log", if-no-files-found: ignore }
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan (vulns, secrets, IaC misconfig)
+        uses: aquasecurity/trivy-action@0.28.0
+        with: { scan-type: fs, severity: "HIGH,CRITICAL", exit-code: "1", ignore-unfixed: true, scanners: "vuln,secret,misconfig" }
+
+  tofu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+      - run: tofu -chdir=infra/tofu init -backend=false && tofu -chdir=infra/tofu fmt -check && tofu -chdir=infra/tofu validate
+
+  gate:
+    if: always()
+    needs: [verify, e2e, security, tofu]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Required-check aggregator (make this the only required status in branch protection)
+        run: |
+          [ "${{ contains(needs.*.result, 'failure') }}" = "false" ] && [ "${{ contains(needs.*.result, 'cancelled') }}" = "false" ]

@@ -1,0 +1,10 @@
+{
+  "name": "signer", "$schema": "../../node_modules/nx/schemas/project-schema.json", "projectType": "application",
+  "tags": ["lang:rust"], "implicitDependencies": ["chaincore"],
+  "targets": {
+    "build": { "executor": "nx:run-commands", "outputs": ["{workspaceRoot}/target/release/signer"], "options": { "command": "cargo build --release --locked -p signer --bin signer" } },
+    "test": { "executor": "nx:run-commands", "options": { "command": "cargo test --locked -p signer" } },
+    "coverage": { "executor": "nx:run-commands", "options": { "command": "bash tools/rust-coverage.sh" } },
+    "lint": { "executor": "nx:run-commands", "options": { "commands": ["cargo fmt --check -p signer", "cargo clippy --locked -p signer --all-targets -- -D warnings"], "parallel": false } }
+  }
+}

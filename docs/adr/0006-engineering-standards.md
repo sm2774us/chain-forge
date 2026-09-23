@@ -1,0 +1,2 @@
+# ADR-0006: Engineering standards & branch defense
+Pre-commit blocks commits to `main` and lints staged files per language; commit-msg enforces Conventional Commits; pre-push runs `nx affected lint test`; CI repeats everything and adds coverage=100%, e2e, Trivy, OpenTofu validate; a single `gate` job is the required check. ADRs record decisions; PR template and CODEOWNERS encode review expectations (security-sensitive paths need @security).

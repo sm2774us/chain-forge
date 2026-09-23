@@ -1,0 +1,54 @@
+# docker compose up --build  →  http://localhost:8088   (API key: dev-key-change-me)
+#
+#  browser ─▶ web(nginx) ─▶ gateway(Go) ──unix socket + gRPC──▶ engine(Rust/revm)   no keys, no network
+#                              │  └──────HMAC(ts.body)────────▶ signer(Rust)        keys + tx policy, private net
+#                              └──JSON-RPC──▶ chainsim (nodes + private relay)
+x-secret: &secret ${SIGNER_SHARED_SECRET:-dev-shared-secret-change-me-please}
+volumes:
+  engine-sock:
+services:
+  sock-init: # hand the shared socket directory to the distroless `nonroot` uid used by engine + gateway
+    image: busybox:1.36
+    command: ["sh", "-c", "chown 65532:65532 /run/engine && chmod 700 /run/engine"]
+    volumes: ["engine-sock:/run/engine"]
+  chainsim:
+    build: { context: ., dockerfile: docker/gateway.Dockerfile, args: { BIN: chainsim } }
+    environment: { SIM_ADDR: ":8545", SIM_BLOCK_MS: "1500", SIM_REORG_EVERY: "12" }
+  engine:
+    build: { context: ., dockerfile: docker/engine.Dockerfile }
+    depends_on: { sock-init: { condition: service_completed_successfully } }
+    environment: { ENGINE_LISTEN: "unix:///run/engine/engine.sock" }
+    volumes: ["engine-sock:/run/engine"]
+    read_only: true
+    cap_drop: [ALL]
+    network_mode: none # nothing can reach it except through the socket
+  signer:
+    build: { context: ., dockerfile: docker/signer.Dockerfile }
+    environment:
+      SIGNER_SHARED_SECRET: *secret
+      # Hardhat/Anvil account #0 — a PUBLIC dev key, never use for real funds.
+      SIGNER_KEYS: alice=ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+      SIGNER_TX_CHAINS: "1337"
+      SIGNER_TX_MAX_VALUE: "1000000000000000" # 0.001 ETH cap per transaction
+    read_only: true
+    cap_drop: [ALL]
+  gateway:
+    build: { context: ., dockerfile: docker/gateway.Dockerfile }
+    depends_on: [chainsim, signer, engine]
+    environment:
+      GATEWAY_ADDR: ":8080"
+      GATEWAY_UPSTREAMS: http://chainsim:8545
+      GATEWAY_API_KEYS: dev=dev-key-change-me
+      SIGNER_URL: http://signer:8081
+      SIGNER_SHARED_SECRET: *secret
+      ENGINE_ADDR: unix:///run/engine/engine.sock
+      RELAY_URLS: http://chainsim:8545
+      POLL_INTERVAL: 500ms
+    volumes: ["engine-sock:/run/engine"]
+    read_only: true
+    cap_drop: [ALL]
+    ports: ["8080:8080"]
+  web:
+    build: { context: ., dockerfile: docker/web.Dockerfile }
+    depends_on: [gateway]
+    ports: ["8088:8080"]

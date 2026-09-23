@@ -1,0 +1,52 @@
+openapi: 3.0.3
+info: { title: ChainForge Gateway, version: 0.1.0, description: "REST + JSON-RPC edge. Auth: X-API-Key header (or api_key query for SSE)." }
+security: [{ ApiKey: [] }]
+paths:
+  /healthz: { get: { security: [], summary: Liveness, responses: { "200": { description: ok } } } }
+  /readyz: { get: { security: [], summary: Readiness (indexer synced + a healthy upstream), responses: { "200": { description: ready }, "503": { description: not ready } } } }
+  /metrics: { get: { security: [], summary: Prometheus exposition, responses: { "200": { description: text } } } }
+  /rpc:
+    post:
+      summary: JSON-RPC 2.0 proxy (single or batch ≤100), load-balanced with failover, cached, rate-limited
+      requestBody: { content: { application/json: { schema: { type: object } } } }
+      responses: { "200": { description: JSON-RPC response }, "429": { description: rate limited } }
+  /v1/status: { get: { summary: Head, upstream health, cache and webhook counts, responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/Status" } } }, description: ok } } } }
+  /v1/blocks:
+    get:
+      summary: Indexed blocks, newest first
+      parameters: [{ name: limit, in: query, schema: { type: integer, default: 25 } }]
+      responses: { "200": { description: ok, content: { application/json: { schema: { type: object, properties: { blocks: { type: array, items: { $ref: "#/components/schemas/Block" } } } } } } } }
+  /v1/stream: { get: { summary: "SSE: events block.new / block.reorged", responses: { "200": { description: text/event-stream } } } }
+  /v1/sign:
+    post:
+      summary: EIP-191 personal_sign via the Rust custody signer (keys never leave it)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [key_id, message], properties: { key_id: { type: string }, message: { type: string } } } } } }
+      responses: { "200": { content: { application/json: { schema: { $ref: "#/components/schemas/SignResult" } } }, description: ok }, "403": { description: unknown key_id }, "413": { description: message too large } }
+  /v1/simulate:
+    post:
+      summary: Predict an EVM (revm engine) or Solana (node simulateTransaction) outcome without signing
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/Intent" } } } }
+      responses: { "200": { description: prediction + the exact tx to sign }, "400": { description: invalid intent }, "422": { description: rejected by the engine (e.g. insufficient funds, gas ceiling) }, "503": { description: engine unavailable }, "501": { description: engine not configured } }
+  /v1/intent:
+    post:
+      summary: Simulate, then (optionally) have the custody signer sign the identical transaction if it succeeded and policy allows
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/Intent" } } } }
+      responses: { "200": { description: prediction, tx, and signed tx or signing_skipped }, "403": { description: signer policy refused } }
+  /v1/broadcast:
+    post:
+      summary: Submit a raw signed transaction through a private relay
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [raw_tx], properties: { chain: { enum: [evm, solana] }, raw_tx: { type: string } } } } } }
+      responses: { "200": { description: "{chain, tx_id}" } }
+  /v1/webhooks:
+    get: { summary: List, responses: { "200": { description: ok } } }
+    post: { summary: Register (HMAC-signed deliveries, SSRF-validated URL), responses: { "201": { description: created } } }
+  /v1/webhooks/{id}: { delete: { parameters: [{ name: id, in: path, required: true, schema: { type: string } }], responses: { "204": { description: removed } } } }
+components:
+  securitySchemes: { ApiKey: { type: apiKey, in: header, name: X-API-Key } }
+  schemas:
+    Intent: { type: object, properties: { chain: { enum: [evm, solana] }, chain_id: { type: integer }, from: { type: string }, to: { type: string }, value: { type: string, description: decimal wei }, data: { type: string }, gas_limit: { type: integer }, gas_price: { type: string }, tx: { type: string, description: base64 (solana) }, sign: { type: object, properties: { key_id: { type: string } } } } }
+    Block: { type: object, properties: { number: { type: integer }, hash: { type: string }, parentHash: { type: string }, timestamp: { type: integer }, txCount: { type: integer } } }
+    Status: { type: object, properties: { head: { $ref: "#/components/schemas/Block" }, upstreams: { type: array, items: { type: object, properties: { url: { type: string }, state: { enum: [closed, open, half-open] } } } }, cache_entries: { type: integer }, webhook_cnt: { type: integer } } }
+    SignResult: { type: object, properties: { address: { type: string }, digest: { type: string }, signature: { type: string } } }
+x-signer-contract:
+  description: "Go → Rust internal boundary (not public). POST /v1/sign, headers X-Timestamp (unix s, ±30s) and X-Signature = hex(HMAC-SHA256(secret, '<ts>.<body>'))."

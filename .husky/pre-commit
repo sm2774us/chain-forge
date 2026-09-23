@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Branch defense: never commit straight to protected branches; lint staged files per language.
+branch=$(git rev-parse --abbrev-ref HEAD)
+case "$branch" in main|master) echo "✖ direct commits to '$branch' are blocked; use a feature branch + PR"; exit 1;; esac
+npx lint-staged

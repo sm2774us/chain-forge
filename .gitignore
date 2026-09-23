@@ -1,0 +1,11 @@
+node_modules/
+target/
+dist/
+coverage/
+.nx/
+playwright-report/
+test-results/
+*.profraw
+.env
+*.tfstate*
+.terraform/

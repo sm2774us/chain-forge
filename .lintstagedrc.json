@@ -1,0 +1,6 @@
+{
+  "*.go": ["bash -c 'gofmt -l -w \"$@\"' --"],
+  "services/gateway/**/*.go": ["bash -c 'cd services/gateway && go vet ./...'"],
+  "*.rs": ["bash -c 'cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings'"],
+  "apps/web/**/*.{ts,tsx}": ["eslint --fix", "prettier --write"]
+}

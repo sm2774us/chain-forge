@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-bg: oklch(0.16 0.02 260);
+  --color-panel: oklch(0.21 0.025 260);
+  --color-line: oklch(0.32 0.03 260);
+  --color-fg: oklch(0.96 0.01 260);
+  --color-muted: oklch(0.7 0.03 260);
+  --color-accent: oklch(0.78 0.16 165);
+  --color-danger: oklch(0.7 0.19 25);
+  --color-warn: oklch(0.82 0.15 85);
+}
+
+html.light {
+  --color-bg: oklch(0.98 0.005 260);
+  --color-panel: oklch(1 0 0);
+  --color-line: oklch(0.9 0.01 260);
+  --color-fg: oklch(0.22 0.03 260);
+  --color-muted: oklch(0.5 0.03 260);
+  --color-accent: oklch(0.55 0.15 165);
+}
+
+body { @apply bg-bg text-fg font-sans antialiased; }

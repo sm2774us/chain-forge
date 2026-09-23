@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "main",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "{workspaceRoot}/contracts/**/*"],
+    "production": ["default", "!{projectRoot}/**/*.test.*", "!{projectRoot}/**/*_test.go"]
+  },
+  "targetDefaults": {
+    "build": { "cache": true, "dependsOn": ["^build"], "inputs": ["production", "^production"] },
+    "test": { "cache": true, "inputs": ["default"] },
+    "coverage": { "cache": true, "inputs": ["default"] },
+    "lint": { "cache": true, "inputs": ["default"] }
+  },
+  "analytics": false
+}

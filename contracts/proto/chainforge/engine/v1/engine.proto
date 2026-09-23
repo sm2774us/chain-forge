@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package chainforge.engine.v1;
+
+// Pre-trade simulation core (Rust, revm). Numbers travel as big-endian bytes
+// (never floats, never lossy ints); addresses are exactly 20 bytes.
+service Engine {
+  // Executes a transaction against caller-supplied state in memory and reports
+  // the outcome without touching any chain.
+  rpc Simulate(SimulateRequest) returns (SimulateResponse);
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+message StorageSlot {
+  bytes key = 1;   // 32 bytes
+  bytes value = 2; // <= 32 bytes, big-endian
+}
+
+message AccountState {
+  bytes address = 1;            // 20 bytes
+  bytes balance = 2;            // <= 32 bytes, big-endian wei
+  uint64 nonce = 3;
+  bytes code = 4;               // runtime bytecode (empty for EOAs)
+  repeated StorageSlot storage = 5;
+}
+
+message SimulateRequest {
+  uint64 chain_id = 1;
+  bytes from = 2;               // 20 bytes
+  bytes to = 3;                 // 20 bytes; empty = contract creation
+  bytes value = 4;              // <= 32 bytes, big-endian wei
+  bytes data = 5;
+  uint64 gas_limit = 6;
+  bytes gas_price = 7;          // <= 32 bytes, big-endian wei
+  repeated AccountState state = 8;
+  uint64 block_number = 9;
+  uint64 timestamp = 10;
+}
+
+enum Outcome {
+  OUTCOME_UNSPECIFIED = 0;
+  OUTCOME_SUCCESS = 1;
+  OUTCOME_REVERT = 2;
+  OUTCOME_HALT = 3;
+}
+
+message Log {
+  bytes address = 1;
+  repeated bytes topics = 2;
+  bytes data = 3;
+}
+
+message BalanceChange {
+  bytes address = 1;
+  bytes before = 2; // 32 bytes big-endian
+  bytes after = 3;  // 32 bytes big-endian
+}
+
+message SimulateResponse {
+  Outcome outcome = 1;
+  uint64 gas_used = 2;
+  bytes output = 3;
+  string reason = 4;
+  repeated Log logs = 5;
+  repeated BalanceChange balance_changes = 6;
+  uint64 elapsed_us = 7;
+  bytes created_address = 8;
+}
+
+message HealthRequest {}
+message HealthResponse {
+  string version = 1;
+}

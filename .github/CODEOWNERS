@@ -1,0 +1,5 @@
+* @chainforge/maintainers
+/services/signer/ @chainforge/security
+/crates/chaincore/ @chainforge/security
+/infra/ @chainforge/platform
+/services/engine/ @chainforge/security
