@@ -1,7 +1,62 @@
 version: 2
+
+# Every PR title must satisfy commitlint (Conventional Commits), so every ecosystem sets the same prefix.
+# (No YAML anchors or custom keys: Dependabot's schema validation rejects them.)
 updates:
-  - { package-ecosystem: gomod, directory: /services/gateway, schedule: { interval: weekly } }
-  - { package-ecosystem: cargo, directory: /, schedule: { interval: weekly } }
-  - { package-ecosystem: npm, directory: /, schedule: { interval: weekly }, groups: { npm-minor: { update-types: [minor, patch] } } }
-  - { package-ecosystem: github-actions, directory: /, schedule: { interval: weekly } }
-  - { package-ecosystem: docker, directory: /docker, schedule: { interval: weekly } }
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    open-pull-requests-limit: 5
+    groups:
+      # Everything that is safe to take together: one PR, one CI run.
+      npm-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # typescript-eslint declares `typescript >=4.8.4 <6.1.0`; TypeScript 7 therefore cannot resolve
+      # (Dependabot error: dependency_file_not_resolvable / ETARGET on peer dependency).
+      # Remove this entry once a typescript-eslint release supports TypeScript 7.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # apps/web is written against the TanStack Table v8 API (v9 is a rewrite); migrate deliberately.
+      - dependency-name: "@tanstack/react-table"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule: { interval: weekly }
+    commit-message:
+      prefix: "chore(deps)"
+    open-pull-requests-limit: 5
+    groups:
+      cargo-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: gomod
+    directory: /services/gateway
+    schedule: { interval: weekly }
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /docker
+    schedule: { interval: weekly }
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule: { interval: weekly }
+    commit-message:
+      prefix: "chore(deps)"
