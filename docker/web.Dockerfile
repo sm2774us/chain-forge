@@ -9,4 +9,5 @@ RUN cd apps/web && npx vite build
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /src/apps/web/dist /usr/share/nginx/html
+USER 101
 EXPOSE 8080

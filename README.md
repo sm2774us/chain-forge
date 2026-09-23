@@ -65,6 +65,12 @@ npx nx affected -t lint test coverage build     # only what changed
 npx nx run web:e2e                              # Playwright (boots the stack; or E2E_BASE_URL=… to reuse one)
 npx nx graph
 ```
+### Pre-flight (catches CI failures before you push)
+```bash
+bash tools/ci-preflight.sh   # actionlint, SHA-pin + dependabot guard, commitlint rules, Trivy misconfig+secret, tofu fmt
+```
+Needs `actionlint`, `trivy` and `tofu` binaries for the last three checks (missing ones are reported, not skipped silently).
+
 ### OpenTofu
 ```bash
 cd infra/tofu && cp terraform.tfvars.example terraform.tfvars && tofu init && tofu apply
