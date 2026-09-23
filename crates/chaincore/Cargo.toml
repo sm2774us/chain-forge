@@ -7,7 +7,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-k256 = { version = "0.13", default-features = false, features = ["ecdsa", "arithmetic", "std"] }
+k256 = { version = "0.14", default-features = false, features = ["ecdsa", "arithmetic", "std"] }
 sha3 = "0.10"
 hex = "0.4"
 zeroize = "1"
