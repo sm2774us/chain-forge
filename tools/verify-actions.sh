@@ -17,3 +17,9 @@ if missing:
     sys.exit(f"dependabot.yml: ecosystems without a conventional-commit prefix: {missing}")
 print("dependabot.yml is valid and commitlint-safe.")
 PY
+
+# Dockerfiles built concurrently by `docker compose` must not share unlocked cache mounts (crate-unpack race: ".cargo-ok: File exists").
+if grep -nE -- '--mount=type=cache' docker/*.Dockerfile | grep -v 'sharing=locked'; then
+  echo "Dockerfile cache mounts must use sharing=locked (and unique ids for target dirs)"; exit 1
+fi
+echo "Dockerfile cache mounts are concurrency-safe."

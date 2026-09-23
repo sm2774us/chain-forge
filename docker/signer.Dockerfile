@@ -2,7 +2,8 @@
 FROM rust:1.89-slim AS build
 WORKDIR /src
 COPY . .
-RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,target=/src/target \
+RUN --mount=type=cache,id=cargo-registry,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,id=cargo-target-signer,target=/src/target,sharing=locked \
     cargo build --release --locked -p signer --bin signer && cp target/release/signer /signer
 
 FROM gcr.io/distroless/cc-debian12:nonroot
