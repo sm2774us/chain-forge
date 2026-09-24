@@ -100,7 +100,7 @@ async fn unix_socket_serves_simulate_and_health_and_maps_errors() {
         .await
     });
     for _ in 0..200 {
-        if std::fs::metadata(&sock).map(|m| !m.is_file()).unwrap_or(false) {
+        if std::fs::metadata(&sock).is_ok_and(|m| !m.is_file()) {
             break;
         }
         tokio::time::sleep(Duration::from_millis(10)).await;
