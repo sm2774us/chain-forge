@@ -31,7 +31,7 @@ chainforge/
 ├─ infra/tofu/               OpenTofu (Docker provider) — no license, no cloud bill
 ├─ tools/                    100%-coverage gate scripts (Go, Rust)
 ├─ docs/adr/                 Architecture Decision Records
-├─ .github/                  workflows (ci, release), CODEOWNERS, dependabot, PR template, copilot-instructions
+├─ .github/                  workflows (ci, release), CODEOWNERS, PR template, copilot-instructions
 ├─ .husky/ .lintstagedrc.json commitlint.config.js      local branch defense
 ├─ CLAUDE.md AGENTS.md .claude/                          AI-assistant tooling
 └─ nx.json + */project.json  Nx targets for every language
@@ -47,7 +47,7 @@ curl -H 'x-api-key: dev-key-change-me' localhost:8080/v1/status
 ```
 ### Local processes
 ```bash
-npm ci
+npm install
 SIM_BLOCK_MS=500 SIM_REORG_EVERY=8 go run ./services/gateway/cmd/chainsim &     # run from services/gateway: cd services/gateway
 SIGNER_SHARED_SECRET=dev-shared-secret-change-me-please \
 SIGNER_KEYS=alice=ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
@@ -67,7 +67,7 @@ npx nx graph
 ```
 ### Pre-flight (catches CI failures before you push)
 ```bash
-bash tools/ci-preflight.sh   # actionlint, SHA-pin + dependabot guard, commitlint rules, Trivy misconfig+secret, tofu fmt
+bash tools/ci-preflight.sh   # actionlint, SHA-pin guard, commitlint rules, Trivy misconfig+secret, tofu fmt
 ```
 Needs `actionlint`, `trivy` and `tofu` binaries for the last three checks (missing ones are reported, not skipped silently).
 

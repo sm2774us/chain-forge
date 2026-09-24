@@ -6,18 +6,6 @@ bad=$(grep -rhE '^\s*-?\s*uses:' .github/workflows | grep -vE 'uses: [A-Za-z0-9_
 if [ -n "$bad" ]; then echo "Unpinned actions:"; echo "$bad"; exit 1; fi
 echo "All actions are SHA-pinned."
 
-# dependabot.yml must only use keys Dependabot accepts (no anchors / x- keys) and every ecosystem must set a commitlint-safe prefix.
-python3 - <<'PY'
-import yaml, sys
-d = yaml.safe_load(open(".github/dependabot.yml"))
-if set(d) != {"version", "updates"}:
-    sys.exit(f"dependabot.yml: unsupported top-level keys {set(d) - {'version', 'updates'}}")
-missing = [u["package-ecosystem"] for u in d["updates"] if not u.get("commit-message", {}).get("prefix", "").startswith("chore")]
-if missing:
-    sys.exit(f"dependabot.yml: ecosystems without a conventional-commit prefix: {missing}")
-print("dependabot.yml is valid and commitlint-safe.")
-PY
-
 # Dockerfiles built concurrently by `docker compose` must not share unlocked cache mounts (crate-unpack race: ".cargo-ok: File exists").
 if grep -nE -- '--mount=type=cache' docker/*.Dockerfile | grep -v 'sharing=locked'; then
   echo "Dockerfile cache mounts must use sharing=locked (and unique ids for target dirs)"; exit 1

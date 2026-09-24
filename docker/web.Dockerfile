@@ -2,7 +2,7 @@
 FROM node:22-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json tsconfig.base.json ./
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts --no-audit --no-fund
 COPY apps/web apps/web
 RUN cd apps/web && npx vite build
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs, locally, the checks that CI runs and that can be run without Docker or GitHub:
-#   workflow lint (actionlint) · SHA-pin + dependabot guard · commitlint rules · Trivy misconfig+secret scan
+#   workflow lint (actionlint) · SHA-pin guard · commitlint rules · Trivy misconfig+secret scan
 #   (the same scanners/severity as CI; vuln DB needs network) · OpenTofu fmt (+ validate when the provider is reachable)
 # Missing tools are reported, not silently skipped. Install: actionlint, trivy, tofu (all single binaries).
 set -uo pipefail
@@ -9,7 +9,7 @@ rc=0
 step() { echo; echo "── $*"; }
 have() { command -v "$1" >/dev/null 2>&1 || { echo "  ! $1 not installed — SKIPPED (CI will still run it)"; return 1; }; }
 
-step "SHA-pinned actions + dependabot.yml"; bash tools/verify-actions.sh || rc=1
+step "SHA-pinned actions + Dockerfile cache mounts"; bash tools/verify-actions.sh || rc=1
 step "commitlint rules"; bash tools/test-commitlint.sh || rc=1
 step "actionlint"; if have actionlint; then actionlint -color=false .github/workflows/*.yml && echo "  clean" || rc=1; fi
 step "trivy misconfig + secret (HIGH,CRITICAL)"

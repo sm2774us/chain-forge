@@ -87,7 +87,7 @@ jobs:
         with: { go-version-file: services/gateway/go.mod }
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with: { toolchain: stable }
-      - run: npm ci --ignore-scripts
+      - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npx nx run-many -t build
       - run: |
           mkdir -p out && cp dist/go/* target/release/signer out/ && tar -C apps/web -czf out/web-dist.tgz dist
